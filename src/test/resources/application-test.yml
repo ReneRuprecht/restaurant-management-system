@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    username: user
+    password: user
+    url: jdbc:mysql://database1:3306/rms-db
+    driverClassName: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+    show-sql: true
