@@ -17,8 +17,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -39,8 +38,9 @@ class BookingServiceTest {
 
         FindAllBookingResponse actual = underTest.findAll();
 
-        assertNotNull(actual);
+        verify(bookingRepository, times(1)).findAll();
 
+        assertNotNull(actual);
         assertEquals(expected, actual);
     }
 
@@ -52,16 +52,18 @@ class BookingServiceTest {
         List<RestaurantTable> booked = List.of(new RestaurantTable(2L, 2L, 3, true),
                                                new RestaurantTable(3L, 3L, 1, true));
 
-        List<RestaurantTable> table = Stream.concat(available.stream(), booked.stream()).toList();
+        List<RestaurantTable> restaurantTables = Stream.concat(available.stream(), booked.stream())
+                                                       .toList();
 
         FindAllBookingResponse expected = new FindAllBookingResponse(available, booked);
 
-        when(bookingRepository.findAll()).thenReturn(table);
+        when(bookingRepository.findAll()).thenReturn(restaurantTables);
 
         FindAllBookingResponse actual = underTest.findAll();
 
-        assertNotNull(actual);
+        verify(bookingRepository, times(1)).findAll();
 
+        assertNotNull(actual);
         assertEquals(expected, actual);
     }
 
@@ -70,11 +72,13 @@ class BookingServiceTest {
 
         BookingRequest bookingRequest = new BookingRequest(3);
         String expectedMessage = "Alle Tische sind belegt";
-        when(bookingRepository.findByAvailableSeats(anyInt())).thenReturn(Optional.empty());
+        when(bookingRepository.findByAvailableSeats(bookingRequest.seats())).thenReturn(Optional.empty());
 
         NoAvailableTableException actual = assertThrows(NoAvailableTableException.class, () -> {
             underTest.bookATable(bookingRequest);
         });
+
+        verify(bookingRepository, times(1)).findByAvailableSeats(bookingRequest.seats());
 
         assertEquals(expectedMessage, actual.getMessage());
     }
@@ -86,11 +90,18 @@ class BookingServiceTest {
 
         BookingRequest bookingRequest = new BookingRequest(3);
         RestaurantTable restaurantTable = new RestaurantTable(1L, 1L, 5, false);
+        RestaurantTable savedRestaurantTable = new RestaurantTable(1L, 1L, 5, true);
 
         when(bookingRepository.findByAvailableSeats(bookingRequest.seats())).thenReturn(Optional.of(
                 restaurantTable));
 
+
+        when(bookingRepository.save(restaurantTable)).thenReturn(savedRestaurantTable);
+
         BookingResponse actual = underTest.bookATable(bookingRequest);
+
+        verify(bookingRepository, times(1)).findByAvailableSeats(bookingRequest.seats());
+        verify(bookingRepository, times(1)).save(savedRestaurantTable);
 
         assertNotNull(actual);
         assertEquals(expected, actual);

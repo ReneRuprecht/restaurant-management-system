@@ -38,6 +38,10 @@ public class BookingService {
                                                                 .orElseThrow(() -> new NoAvailableTableException(
                                                                         "Alle Tische sind belegt"));
 
-        return new BookingResponse(restaurantTable.getId());
+        restaurantTable.setBooked(true);
+
+        RestaurantTable savedRestaurantTable = this.bookingRepository.save(restaurantTable);
+
+        return new BookingResponse(savedRestaurantTable.getId());
     }
 }
