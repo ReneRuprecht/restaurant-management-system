@@ -1,6 +1,9 @@
 package com.example.restaurantmanagementsystem.booking;
 
 import com.example.restaurantmanagementsystem.booking.Entity.RestaurantTable;
+import com.example.restaurantmanagementsystem.booking.exception.NoAvailableTableException;
+import com.example.restaurantmanagementsystem.booking.request.BookingRequest;
+import com.example.restaurantmanagementsystem.booking.response.BookingResponse;
 import com.example.restaurantmanagementsystem.booking.response.FindAllBookingResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,14 +23,21 @@ public class BookingService {
         List<RestaurantTable> available = new ArrayList<>();
         List<RestaurantTable> booked = new ArrayList<>();
 
-        for (RestaurantTable table : restaurantTables) {
-            if (table.isBooked()) {
-                booked.add(table);
+        for (RestaurantTable restaurantTable : restaurantTables) {
+            if (restaurantTable.isBooked()) {
+                booked.add(restaurantTable);
                 continue;
             }
-            available.add(table);
+            available.add(restaurantTable);
         }
-
         return new FindAllBookingResponse(available, booked);
+    }
+
+    public BookingResponse bookATable(BookingRequest bookingRequest) {
+        RestaurantTable restaurantTable = this.bookingRepository.findByAvailableSeats(bookingRequest.seats())
+                                                                .orElseThrow(() -> new NoAvailableTableException(
+                                                                        "Alle Tische sind belegt"));
+
+        return new BookingResponse(restaurantTable.getId());
     }
 }

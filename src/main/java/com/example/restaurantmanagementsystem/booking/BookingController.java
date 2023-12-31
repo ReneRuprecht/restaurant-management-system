@@ -1,12 +1,12 @@
 package com.example.restaurantmanagementsystem.booking;
 
+import com.example.restaurantmanagementsystem.booking.request.BookingRequest;
+import com.example.restaurantmanagementsystem.booking.response.BookingResponse;
 import com.example.restaurantmanagementsystem.booking.response.FindAllBookingResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/booking")
@@ -18,5 +18,11 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<FindAllBookingResponse> findAll() {
         return new ResponseEntity<>(this.bookingService.findAll(), HttpStatus.OK);
+    }
+
+    @PostMapping
+    public ResponseEntity<BookingResponse> bookATable(@RequestBody BookingRequest bookingRequest) {
+        return new ResponseEntity<>(this.bookingService.bookATable(bookingRequest),
+                                                   HttpStatus.CREATED);
     }
 }
