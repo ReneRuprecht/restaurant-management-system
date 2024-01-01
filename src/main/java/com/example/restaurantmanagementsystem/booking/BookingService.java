@@ -4,7 +4,7 @@ import com.example.restaurantmanagementsystem.booking.Entity.RestaurantTable;
 import com.example.restaurantmanagementsystem.booking.exception.NoAvailableTableException;
 import com.example.restaurantmanagementsystem.booking.request.BookingRequest;
 import com.example.restaurantmanagementsystem.booking.response.BookingResponse;
-import com.example.restaurantmanagementsystem.booking.response.FindAllBookingResponse;
+import com.example.restaurantmanagementsystem.booking.response.FindAllBookingsResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
 
-    public FindAllBookingResponse findAll() {
+    public FindAllBookingsResponse findAll() {
         List<RestaurantTable> restaurantTables = this.bookingRepository.findAll();
 
         List<RestaurantTable> available = new ArrayList<>();
@@ -30,7 +30,7 @@ public class BookingService {
             }
             available.add(restaurantTable);
         }
-        return new FindAllBookingResponse(available, booked);
+        return new FindAllBookingsResponse(available, booked);
     }
 
     public BookingResponse bookATable(BookingRequest bookingRequest) {

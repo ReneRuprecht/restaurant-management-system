@@ -4,7 +4,7 @@ import com.example.restaurantmanagementsystem.booking.Entity.RestaurantTable;
 import com.example.restaurantmanagementsystem.booking.exception.NoAvailableTableException;
 import com.example.restaurantmanagementsystem.booking.request.BookingRequest;
 import com.example.restaurantmanagementsystem.booking.response.BookingResponse;
-import com.example.restaurantmanagementsystem.booking.response.FindAllBookingResponse;
+import com.example.restaurantmanagementsystem.booking.response.FindAllBookingsResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,12 +31,12 @@ class BookingServiceTest {
     @Test
     void shouldReturnFindAllWithoutData() {
 
-        FindAllBookingResponse expected = new FindAllBookingResponse(new ArrayList<>(),
-                                                                     new ArrayList<>());
+        FindAllBookingsResponse expected = new FindAllBookingsResponse(new ArrayList<>(),
+                                                                       new ArrayList<>());
 
         when(bookingRepository.findAll()).thenReturn(List.of());
 
-        FindAllBookingResponse actual = underTest.findAll();
+        FindAllBookingsResponse actual = underTest.findAll();
 
         verify(bookingRepository, times(1)).findAll();
 
@@ -45,7 +45,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void shouldReturnFindAllWithData() {
+    void shouldReturnFindAllBookingsResponseWithData() {
 
         List<RestaurantTable> available = List.of(new RestaurantTable(1L, 1L, 4, false));
 
@@ -55,11 +55,11 @@ class BookingServiceTest {
         List<RestaurantTable> restaurantTables = Stream.concat(available.stream(), booked.stream())
                                                        .toList();
 
-        FindAllBookingResponse expected = new FindAllBookingResponse(available, booked);
+        FindAllBookingsResponse expected = new FindAllBookingsResponse(available, booked);
 
         when(bookingRepository.findAll()).thenReturn(restaurantTables);
 
-        FindAllBookingResponse actual = underTest.findAll();
+        FindAllBookingsResponse actual = underTest.findAll();
 
         verify(bookingRepository, times(1)).findAll();
 
@@ -84,7 +84,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void shouldReturnTableIdIfThereIsATableAvailable() {
+    void shouldReturnBookingResponseWithTableIdIfThereIsATableAvailable() {
 
         BookingResponse expected = new BookingResponse(1L);
 
