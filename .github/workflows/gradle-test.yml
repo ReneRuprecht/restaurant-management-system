@@ -1,0 +1,40 @@
+name: Gradle Test
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/*'
+      - 'feat/*'
+  pull_request:
+    branches:
+      - main
+      - 'feature/*'
+      - 'feat/*'
+
+jobs:
+  test-table-service:
+    name: Rund table-service tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.2.2
+        
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4.5.0
+      with:
+        java-version: 21
+        distribution: zulu
+        
+    - name: Gradle Build Action
+      uses: gradle/gradle-build-action@v3.5.0          
+    
+    - name: Change to table-service directory
+      run: cd backend/table-service
+
+    - name: Build and run tests
+      run: ./gradlew test
+      working-directory: backend/table-service
+
+
