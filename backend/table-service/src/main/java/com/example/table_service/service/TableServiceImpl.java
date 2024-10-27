@@ -3,6 +3,7 @@ package com.example.table_service.service;
 import com.example.table_service.dto.TableDto;
 import com.example.table_service.entity.Table;
 import com.example.table_service.exception.TableNotFoundException;
+import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
 import com.example.table_service.repository.TableRepository;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,4 +29,20 @@ public class TableServiceImpl implements TableService {
     return tables.stream().map(TableDto::fromEntity).collect(Collectors.toList());
 
   }
+
+  @Override
+  public TableDto create(TableDto tableToCreate)
+      throws TableWithDisplayNumberAlreadyExistsException {
+    if (tableRepository.findTableByDisplayNumber(tableToCreate.displayNumber()).isPresent()) {
+
+      throw new TableWithDisplayNumberAlreadyExistsException(
+          String.format("Der Tisch mit der Nummer %d existiert bereits",
+              tableToCreate.displayNumber()));
+    }
+
+    tableRepository.save(TableDto.toEntity(tableToCreate));
+
+    return tableToCreate;
+  }
+
 }

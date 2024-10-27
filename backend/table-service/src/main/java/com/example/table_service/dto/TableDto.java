@@ -22,4 +22,12 @@ public record TableDto(
         .seats(table.getSeats()).build();
   }
 
+  public static Table toEntity(TableDto tableDto) {
+    if (tableDto == null) {
+      return null;
+    }
+    return Table.builder().name(tableDto.name()).displayNumber(tableDto.displayNumber())
+        .seats(tableDto.seats()).build();
+  }
+
 }
