@@ -1,5 +1,6 @@
 services:
-  db:
+  table_service_db:
+    container_name: 'table_service_db'
     image: mysql:8
     restart: always
     environment:

@@ -10,3 +10,6 @@ logs:
 
 ps:
 	docker-compose -f $(COMPOSE) ps
+
+test:
+	./gradlew test
