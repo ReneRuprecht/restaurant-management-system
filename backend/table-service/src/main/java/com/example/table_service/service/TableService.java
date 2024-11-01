@@ -10,4 +10,6 @@ public interface TableService {
   List<TableDto> findAllTables() throws TableNotFoundException;
 
   TableDto create(TableDto tableToCreate);
+
+  TableDto findTableByDisplayNumber(int displayNumber);
 }

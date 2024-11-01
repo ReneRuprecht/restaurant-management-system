@@ -45,4 +45,12 @@ public class TableServiceImpl implements TableService {
     return tableToCreate;
   }
 
+  @Override
+  public TableDto findTableByDisplayNumber(int displayNumber) {
+    Table table = tableRepository.findTableByDisplayNumber(displayNumber).orElseThrow(
+        () -> new TableNotFoundException(
+            String.format("Der Tisch mit der ID %d konnte nicht gefunden werden", displayNumber)));
+    return TableDto.fromEntity(table);
+  }
+
 }

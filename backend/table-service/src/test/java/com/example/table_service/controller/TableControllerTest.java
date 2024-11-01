@@ -27,7 +27,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(TableController.class) // Teste den UserController
+@WebMvcTest(TableController.class)
 @ExtendWith(MockitoExtension.class)
 class TableControllerTest {
 
@@ -113,6 +113,37 @@ class TableControllerTest {
         .andExpect(content().json(objectMapper.writeValueAsString(expected)));
 
     verify(tableService, times(1)).create(tableDto);
+  }
+
+  @Test
+  void findTableByDisplayNumber_whenTableWithDisplayNumberDoesNotExists_throwsTableNotFoundExceptionExceptionAndStatus404()
+      throws Exception {
+
+    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+
+    String expectedMessage = String.format("Der Tisch mit der Nummer %d wurde nicht gefunden",
+        tableDto.displayNumber());
+
+    when(tableService.findTableByDisplayNumber(tableDto.displayNumber())).thenThrow(
+        new TableNotFoundException(expectedMessage));
+
+    mockMvc.perform(get(String.format("/api/v1/table/%d", tableDto.displayNumber())))
+        .andExpect(status().isNotFound()).andExpect(content().string(expectedMessage));
+  }
+
+  @Test
+  void findTableByDisplayNumber_whenTableWithDisplayNumberExists_returnTableDtoAndStatus200()
+      throws Exception {
+
+    TableDto expected = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+
+    when(tableService.findTableByDisplayNumber(expected.displayNumber())).thenReturn(expected);
+
+    mockMvc.perform(get(String.format("/api/v1/table/%d", expected.displayNumber())))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected)));
+
+    verify(tableService, times(1)).findTableByDisplayNumber(expected.displayNumber());
   }
 
 }
