@@ -1,8 +1,10 @@
 package com.example.table_service.controller;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -146,4 +148,31 @@ class TableControllerTest {
     verify(tableService, times(1)).findTableByDisplayNumber(expected.displayNumber());
   }
 
+  @Test
+  void deleteTableByDisplayNumber_whenTableWithDisplayNumberDoesNotExists_throwsTableNotFoundExceptionExceptionAndStatus404()
+      throws Exception {
+
+    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+
+    String expectedMessage = String.format("Der Tisch mit der Nummer %d wurde nicht gefunden",
+        tableDto.displayNumber());
+
+    doThrow(new TableNotFoundException(expectedMessage)).when(tableService)
+        .deleteTableByDisplayNumber(tableDto.displayNumber());
+
+    mockMvc.perform(delete(String.format("/api/v1/table/%d", tableDto.displayNumber())))
+        .andExpect(status().isNotFound()).andExpect(content().string(expectedMessage));
+  }
+
+  @Test
+  void deleteTableByDisplayNumber_whenTableWithDisplayNumberDoesExists_returnsStatus200()
+      throws Exception {
+
+    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+
+    mockMvc.perform(delete(String.format("/api/v1/table/%d", tableDto.displayNumber())))
+        .andExpect(status().isOk());
+
+    verify(tableService, times(1)).deleteTableByDisplayNumber(tableDto.displayNumber());
+  }
 }

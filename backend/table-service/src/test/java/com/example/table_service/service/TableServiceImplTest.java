@@ -107,16 +107,14 @@ class TableServiceImplTest {
   void findTableByDisplayNumber_whenTableDisplayNumberDoesNotExists_throwsTableNotFoundException() {
     int displayNumber = 1;
 
-    when(tableRepository.findTableByDisplayNumber(displayNumber)).thenReturn(
-        Optional.empty());
+    when(tableRepository.findTableByDisplayNumber(displayNumber)).thenReturn(Optional.empty());
 
-    String expectedMessage = String.format("Der Tisch mit der ID %d konnte nicht gefunden werden",
-        displayNumber);
+    String expectedMessage = String.format(
+        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", displayNumber);
 
-    TableNotFoundException thrown = assertThrows(
-        TableNotFoundException.class, () -> {
-          underTest.findTableByDisplayNumber(displayNumber);
-        });
+    TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
+      underTest.findTableByDisplayNumber(displayNumber);
+    });
 
     verify(tableRepository, times(1)).findTableByDisplayNumber(displayNumber);
     assertEquals(expectedMessage, thrown.getMessage());
@@ -134,5 +132,35 @@ class TableServiceImplTest {
 
     verify(tableRepository, times(1)).findTableByDisplayNumber(table.getDisplayNumber());
     assertEquals(expected, actual);
+  }
+
+  @Test
+  void deleteTableByDisplayNumber_whenTableDisplayNumberDoesNotExists_throwsTableNotFoundException() {
+    int displayNumber = 1;
+
+    when(tableRepository.findTableByDisplayNumber(displayNumber)).thenReturn(Optional.empty());
+
+    String expectedMessage = String.format(
+        "Der Tisch mit der Nummber %d konnte nicht gefunden werden", displayNumber);
+
+    TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
+      underTest.findTableByDisplayNumber(displayNumber);
+    });
+
+    verify(tableRepository, times(1)).findTableByDisplayNumber(displayNumber);
+    assertEquals(expectedMessage, thrown.getMessage());
+  }
+
+  @Test
+  void deleteTableByDisplayNumber_whenTableDisplayNumberDoesExists_isSuccessful() {
+    Table table = Table.builder().name("tbl1").displayNumber(1).seats(1).build();
+
+    when(tableRepository.findTableByDisplayNumber(table.getDisplayNumber())).thenReturn(
+        Optional.of(table));
+
+    underTest.deleteTableByDisplayNumber(table.getDisplayNumber());
+
+    verify(tableRepository, times(1)).findTableByDisplayNumber(table.getDisplayNumber());
+    verify(tableRepository, times(1)).delete(table);
   }
 }

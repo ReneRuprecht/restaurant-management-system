@@ -46,11 +46,23 @@ public class TableServiceImpl implements TableService {
   }
 
   @Override
-  public TableDto findTableByDisplayNumber(int displayNumber) {
+  public TableDto findTableByDisplayNumber(int displayNumber) throws TableNotFoundException {
     Table table = tableRepository.findTableByDisplayNumber(displayNumber).orElseThrow(
         () -> new TableNotFoundException(
-            String.format("Der Tisch mit der ID %d konnte nicht gefunden werden", displayNumber)));
+            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden",
+                displayNumber)));
     return TableDto.fromEntity(table);
+  }
+
+  @Override
+  public void deleteTableByDisplayNumber(int displayNumber) throws TableNotFoundException {
+    Table table = tableRepository.findTableByDisplayNumber(displayNumber).orElseThrow(
+        () -> new TableNotFoundException(
+            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden",
+                displayNumber)));
+
+    tableRepository.delete(table);
+
   }
 
 }

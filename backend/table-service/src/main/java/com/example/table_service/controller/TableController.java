@@ -4,11 +4,14 @@ import com.example.table_service.dto.TableDto;
 import com.example.table_service.dto.request.TableCreateRequest;
 import com.example.table_service.dto.response.TableCreatedResponse;
 import com.example.table_service.dto.response.TableFindAllResponse;
+import com.example.table_service.exception.TableNotFoundException;
+import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
 import com.example.table_service.service.TableService;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,22 +27,32 @@ public class TableController {
   private final TableService tableService;
 
   @GetMapping()
-  public ResponseEntity<TableFindAllResponse> findAllTables() {
+  public ResponseEntity<TableFindAllResponse> findAllTables() throws TableNotFoundException {
     List<TableDto> tables = tableService.findAllTables();
 
     return new ResponseEntity<>(new TableFindAllResponse(tables), HttpStatus.OK);
   }
 
   @GetMapping("/{displayNumber}")
-  public ResponseEntity<TableDto> findTableByDisplayNumber(@PathVariable int displayNumber) {
+  public ResponseEntity<TableDto> findTableByDisplayNumber(@PathVariable int displayNumber)
+      throws TableNotFoundException {
     TableDto table = tableService.findTableByDisplayNumber(displayNumber);
 
     return new ResponseEntity<>(table, HttpStatus.OK);
   }
 
+  @DeleteMapping("/{displayNumber}")
+  public ResponseEntity<Void> deleteTableByDisplayNumber(@PathVariable int displayNumber)
+      throws TableNotFoundException {
+    tableService.deleteTableByDisplayNumber(displayNumber);
+
+    return new ResponseEntity<>(HttpStatus.OK);
+  }
+
   @PostMapping
   public ResponseEntity<TableCreatedResponse> create(
-      @RequestBody TableCreateRequest tableCreateRequest) {
+      @RequestBody TableCreateRequest tableCreateRequest)
+      throws TableWithDisplayNumberAlreadyExistsException {
 
     TableDto tableToCreate = TableDto.builder().name(tableCreateRequest.name())
         .displayNumber(tableCreateRequest.displayNumber()).seats(tableCreateRequest.seats())
