@@ -141,7 +141,7 @@ class TableServiceImplTest {
     when(tableRepository.findTableByDisplayNumber(displayNumber)).thenReturn(Optional.empty());
 
     String expectedMessage = String.format(
-        "Der Tisch mit der Nummber %d konnte nicht gefunden werden", displayNumber);
+        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", displayNumber);
 
     TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
       underTest.findTableByDisplayNumber(displayNumber);
