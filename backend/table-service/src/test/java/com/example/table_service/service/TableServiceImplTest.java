@@ -144,7 +144,7 @@ class TableServiceImplTest {
         "Der Tisch mit der Nummer %d konnte nicht gefunden werden", displayNumber);
 
     TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
-      underTest.findTableByDisplayNumber(displayNumber);
+      underTest.deleteTableByDisplayNumber(displayNumber);
     });
 
     verify(tableRepository, times(1)).findTableByDisplayNumber(displayNumber);
@@ -162,5 +162,36 @@ class TableServiceImplTest {
 
     verify(tableRepository, times(1)).findTableByDisplayNumber(table.getDisplayNumber());
     verify(tableRepository, times(1)).delete(table);
+  }
+
+  @Test
+  void updateTable_whenTableDisplayNumberDoesNotExists_throwsTableNotFoundException() {
+    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(1).build();
+
+    TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
+      underTest.update(tableDto);
+    });
+
+    verify(tableRepository, times(1)).findTableByDisplayNumber(tableDto.displayNumber());
+    String expectedMessage = String.format(
+        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", tableDto.displayNumber());
+
+    assertEquals(expectedMessage, thrown.getMessage());
+  }
+
+  @Test
+  void updateTable_whenTableDisplayNumberDoesExists_returnsUpdatedTableDto() {
+    TableDto expectedTableDto = TableDto.builder().name("tbl1_updated").displayNumber(1).seats(3)
+        .build();
+    Table table = Table.builder().name("tbl1").displayNumber(1).seats(1).build();
+
+    when(tableRepository.findTableByDisplayNumber(table.getDisplayNumber())).thenReturn(
+        Optional.of(table));
+
+    TableDto actual = underTest.update(expectedTableDto);
+
+    verify(tableRepository, times(1)).findTableByDisplayNumber(expectedTableDto.displayNumber());
+    assertEquals(expectedTableDto, actual);
+
   }
 }

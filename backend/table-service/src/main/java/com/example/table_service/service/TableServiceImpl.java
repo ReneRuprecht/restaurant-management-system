@@ -5,6 +5,7 @@ import com.example.table_service.entity.Table;
 import com.example.table_service.exception.TableNotFoundException;
 import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
 import com.example.table_service.repository.TableRepository;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -31,6 +32,7 @@ public class TableServiceImpl implements TableService {
   }
 
   @Override
+  @Transactional
   public TableDto create(TableDto tableToCreate)
       throws TableWithDisplayNumberAlreadyExistsException {
     if (tableRepository.findTableByDisplayNumber(tableToCreate.displayNumber()).isPresent()) {
@@ -55,6 +57,7 @@ public class TableServiceImpl implements TableService {
   }
 
   @Override
+  @Transactional
   public void deleteTableByDisplayNumber(int displayNumber) throws TableNotFoundException {
     Table table = tableRepository.findTableByDisplayNumber(displayNumber).orElseThrow(
         () -> new TableNotFoundException(
@@ -63,6 +66,22 @@ public class TableServiceImpl implements TableService {
 
     tableRepository.delete(table);
 
+  }
+
+  @Override
+  @Transactional
+  public TableDto update(TableDto tableToUpdate) {
+    Table table = tableRepository.findTableByDisplayNumber(tableToUpdate.displayNumber())
+        .orElseThrow(() -> new TableNotFoundException(
+            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden",
+                tableToUpdate.displayNumber())));
+
+    table.setName(tableToUpdate.name());
+    table.setSeats(tableToUpdate.seats());
+
+    tableRepository.save(table);
+
+    return TableDto.fromEntity(table);
   }
 
 }

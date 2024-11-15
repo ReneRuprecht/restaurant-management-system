@@ -1,5 +1,6 @@
 package com.example.table_service.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -7,13 +8,17 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.table_service.dto.TableDto;
 import com.example.table_service.dto.request.TableCreateRequest;
+import com.example.table_service.dto.request.TableUpdateRequest;
 import com.example.table_service.dto.response.TableCreatedResponse;
 import com.example.table_service.dto.response.TableFindAllResponse;
+import com.example.table_service.dto.response.TableUpdatedResponse;
 import com.example.table_service.exception.TableNotFoundException;
 import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
 import com.example.table_service.service.TableServiceImpl;
@@ -174,5 +179,49 @@ class TableControllerTest {
         .andExpect(status().isOk());
 
     verify(tableService, times(1)).deleteTableByDisplayNumber(tableDto.displayNumber());
+  }
+
+  @Test
+  void updateTable_whenTableWithDisplayNumberDoesExists_returnsStatus200() throws Exception {
+
+    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("tbl1_updated", 1, 4);
+
+    TableDto tableDtoUpdated = TableDto.builder().name("tbl1_updated").displayNumber(1).seats(4)
+        .build();
+    TableUpdatedResponse tableUpdatedResponse = new TableUpdatedResponse(tableDtoUpdated);
+
+    when(tableService.update(tableDtoUpdated)).thenReturn(tableDtoUpdated);
+
+    mockMvc.perform(put("/api/v1/table").contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(tableUpdateRequest))).andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(tableUpdatedResponse)));
+
+    verify(tableService, times(1)).update(tableDtoUpdated);
+  }
+
+  @Test
+  void updateTable_whenTableSeatsAreInvalid_returnsStatus400() throws Exception {
+
+    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("tbl1_updated", 1, 0);
+
+    String invalidSeats = "{\"seats\":\"must be greater than or equal to 1\"}";
+
+    mockMvc.perform(
+            put("/api/v1/table").contentType(MediaType.APPLICATION_JSON).contentType("application/json")
+                .content(objectMapper.writeValueAsString(tableUpdateRequest)))
+        .andExpect(status().isBadRequest()).andExpect(content().string(invalidSeats));
+  }
+
+  @Test
+  void updateTable_whenTableNameIsEmpty_returnsStatus400() throws Exception {
+
+    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("", 1, 1);
+
+    String invalidSeats = "{\"name\":\"must not be empty\"}";
+
+    mockMvc.perform(
+            put("/api/v1/table").contentType(MediaType.APPLICATION_JSON).contentType("application/json")
+                .content(objectMapper.writeValueAsString(tableUpdateRequest)))
+        .andExpect(status().isBadRequest()).andExpect(content().string(invalidSeats));
   }
 }

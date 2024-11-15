@@ -2,11 +2,14 @@ package com.example.table_service.controller;
 
 import com.example.table_service.dto.TableDto;
 import com.example.table_service.dto.request.TableCreateRequest;
+import com.example.table_service.dto.request.TableUpdateRequest;
 import com.example.table_service.dto.response.TableCreatedResponse;
 import com.example.table_service.dto.response.TableFindAllResponse;
+import com.example.table_service.dto.response.TableUpdatedResponse;
 import com.example.table_service.exception.TableNotFoundException;
 import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
 import com.example.table_service.service.TableService;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,6 +65,19 @@ public class TableController {
     TableDto createdTableDto = tableService.create(tableToCreate);
 
     return new ResponseEntity<>(new TableCreatedResponse(createdTableDto), HttpStatus.CREATED);
+  }
+
+  @PutMapping
+  public ResponseEntity<TableUpdatedResponse> update(
+      @Valid @RequestBody TableUpdateRequest tableUpdateRequest) throws TableNotFoundException {
+
+    TableDto tableToUpdate = TableDto.builder().name(tableUpdateRequest.name())
+        .displayNumber(tableUpdateRequest.displayNumber()).seats(tableUpdateRequest.seats())
+        .build();
+
+    TableDto updatedTableDto = tableService.update(tableToUpdate);
+
+    return new ResponseEntity<>(new TableUpdatedResponse(updatedTableDto), HttpStatus.OK);
   }
 
 }

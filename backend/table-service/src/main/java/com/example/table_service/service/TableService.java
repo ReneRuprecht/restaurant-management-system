@@ -15,4 +15,6 @@ public interface TableService {
   TableDto findTableByDisplayNumber(int displayNumber) throws TableNotFoundException;
 
   void deleteTableByDisplayNumber(int displayNumber) throws TableNotFoundException;
+
+  TableDto update(TableDto tableToUpdate) throws TableNotFoundException;
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -31,5 +32,17 @@ public class Table {
   @Column(name = "seats")
   private int seats;
 
+  public void setName(String name) {
+    if (name == null || name.isEmpty()) {
+      return;
+    }
+    this.name = name;
+  }
 
+  public void setSeats(int seats) {
+    if (seats < 1) {
+      return;
+    }
+    this.seats = seats;
+  }
 }
