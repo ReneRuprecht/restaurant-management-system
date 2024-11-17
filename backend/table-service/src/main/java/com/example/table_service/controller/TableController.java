@@ -7,8 +7,9 @@ import com.example.table_service.dto.response.TableCreatedResponse;
 import com.example.table_service.dto.response.TableFindAllResponse;
 import com.example.table_service.dto.response.TableUpdatedResponse;
 import com.example.table_service.exception.TableNotFoundException;
-import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
+import com.example.table_service.exception.TableWithNumberAlreadyExistsException;
 import com.example.table_service.service.TableService;
+import com.example.table_service.util.TableMapper;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -30,6 +31,8 @@ public class TableController {
 
   private final TableService tableService;
 
+  private final TableMapper tableMapper;
+
   @GetMapping()
   public ResponseEntity<TableFindAllResponse> findAllTables() throws TableNotFoundException {
     List<TableDto> tables = tableService.findAllTables();
@@ -37,18 +40,18 @@ public class TableController {
     return new ResponseEntity<>(new TableFindAllResponse(tables), HttpStatus.OK);
   }
 
-  @GetMapping("/{displayNumber}")
-  public ResponseEntity<TableDto> findTableByDisplayNumber(@PathVariable int displayNumber)
+  @GetMapping("/{number}")
+  public ResponseEntity<TableDto> findTableByNumber(@PathVariable int number)
       throws TableNotFoundException {
-    TableDto table = tableService.findTableByDisplayNumber(displayNumber);
+    TableDto table = tableService.findTableByNumber(number);
 
     return new ResponseEntity<>(table, HttpStatus.OK);
   }
 
-  @DeleteMapping("/{displayNumber}")
-  public ResponseEntity<Void> deleteTableByDisplayNumber(@PathVariable int displayNumber)
+  @DeleteMapping("/{number}")
+  public ResponseEntity<Void> deleteTableByNumber(@PathVariable int number)
       throws TableNotFoundException {
-    tableService.deleteTableByDisplayNumber(displayNumber);
+    tableService.deleteTableByNumber(number);
 
     return new ResponseEntity<>(HttpStatus.OK);
   }
@@ -56,11 +59,9 @@ public class TableController {
   @PostMapping
   public ResponseEntity<TableCreatedResponse> create(
       @RequestBody TableCreateRequest tableCreateRequest)
-      throws TableWithDisplayNumberAlreadyExistsException {
+      throws TableWithNumberAlreadyExistsException {
 
-    TableDto tableToCreate = TableDto.builder().name(tableCreateRequest.name())
-        .displayNumber(tableCreateRequest.displayNumber()).seats(tableCreateRequest.seats())
-        .build();
+    TableDto tableToCreate = tableMapper.fromTableCreateRequestToTableDto(tableCreateRequest);
 
     TableDto createdTableDto = tableService.create(tableToCreate);
 
@@ -71,9 +72,7 @@ public class TableController {
   public ResponseEntity<TableUpdatedResponse> update(
       @Valid @RequestBody TableUpdateRequest tableUpdateRequest) throws TableNotFoundException {
 
-    TableDto tableToUpdate = TableDto.builder().name(tableUpdateRequest.name())
-        .displayNumber(tableUpdateRequest.displayNumber()).seats(tableUpdateRequest.seats())
-        .build();
+    TableDto tableToUpdate = tableMapper.fromTableUpdateRequestToTableDto(tableUpdateRequest);
 
     TableDto updatedTableDto = tableService.update(tableToUpdate);
 

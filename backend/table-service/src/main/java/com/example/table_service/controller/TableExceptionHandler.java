@@ -1,7 +1,7 @@
 package com.example.table_service.controller;
 
 import com.example.table_service.exception.TableNotFoundException;
-import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
+import com.example.table_service.exception.TableWithNumberAlreadyExistsException;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -19,9 +19,9 @@ public class TableExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
   }
 
-  @ExceptionHandler(TableWithDisplayNumberAlreadyExistsException.class)
-  public ResponseEntity<String> handleTableWithDisplayNumberAlreadyExistsException(
-      TableWithDisplayNumberAlreadyExistsException ex) {
+  @ExceptionHandler(TableWithNumberAlreadyExistsException.class)
+  public ResponseEntity<String> handleTableWithNumberAlreadyExistsException(
+      TableWithNumberAlreadyExistsException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
   }
 

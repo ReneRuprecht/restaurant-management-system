@@ -1,33 +1,26 @@
 package com.example.table_service.dto;
 
-import com.example.table_service.entity.Table;
+import com.example.table_service.model.TableStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 
+@Data
 @Builder
-public record TableDto(
+@AllArgsConstructor
+public class TableDto {
 
-    @JsonProperty(value = "display_number") int displayNumber,
+  @JsonProperty(value = "name")
+  String name;
 
-    @JsonProperty(value = "name") String name,
+  @JsonProperty(value = "number")
+  int number;
 
-    @JsonProperty(value = "seats") int seats) {
+  @JsonProperty(value = "seats")
+  int seats;
 
-
-  public static TableDto fromEntity(Table table) {
-    if (table == null) {
-      return null;
-    }
-    return TableDto.builder().name(table.getName()).displayNumber(table.getDisplayNumber())
-        .seats(table.getSeats()).build();
-  }
-
-  public static Table toEntity(TableDto tableDto) {
-    if (tableDto == null) {
-      return null;
-    }
-    return Table.builder().name(tableDto.name()).displayNumber(tableDto.displayNumber())
-        .seats(tableDto.seats()).build();
-  }
+  @JsonProperty(value = "status")
+  TableStatus tableStatus;
 
 }

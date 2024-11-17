@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 import com.example.table_service.dto.TableDto;
 import com.example.table_service.entity.Table;
 import com.example.table_service.exception.TableNotFoundException;
-import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
+import com.example.table_service.exception.TableWithNumberAlreadyExistsException;
+import com.example.table_service.model.TableStatus;
 import com.example.table_service.repository.TableRepository;
+import com.example.table_service.util.TableMapper;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,9 @@ class TableServiceImplTest {
 
   @Mock
   private TableRepository tableRepository;
+
+  @Mock
+  private TableMapper tableMapper;
 
   @InjectMocks
   private TableServiceImpl underTest;
@@ -48,12 +53,19 @@ class TableServiceImplTest {
   @Test
   void findAllTables_whenTablesExist_returnListOfTableDto() {
 
-    TableDto tblDto1 = TableDto.builder().name("tbl1").displayNumber(1).seats(1).build();
-    TableDto tblDto2 = TableDto.builder().name("tbl2").displayNumber(2).seats(2).build();
+    TableDto tblDto1 = TableDto.builder().name("tbl1").number(1).seats(1)
+        .tableStatus(TableStatus.RESERVED).build();
+    TableDto tblDto2 = TableDto.builder().name("tbl2").number(2).seats(2)
+        .tableStatus(TableStatus.RESERVED).build();
     List<TableDto> expected = List.of(tblDto1, tblDto2);
 
-    Table tbl1 = Table.builder().id(1L).name("tbl1").displayNumber(1).seats(1).build();
-    Table tbl2 = Table.builder().id(2L).name("tbl2").displayNumber(2).seats(2).build();
+    Table tbl1 = Table.builder().id(1L).name("tbl1").number(1).seats(1)
+        .tableStatus(TableStatus.RESERVED).build();
+    Table tbl2 = Table.builder().id(2L).name("tbl2").number(2).seats(2)
+        .tableStatus(TableStatus.RESERVED).build();
+
+    when(tableMapper.fromTableToTableDto(tbl1)).thenReturn(tblDto1);
+    when(tableMapper.fromTableToTableDto(tbl2)).thenReturn(tblDto2);
 
     when(tableRepository.findAll()).thenReturn(List.of(tbl1, tbl2));
 
@@ -67,130 +79,142 @@ class TableServiceImplTest {
   }
 
   @Test
-  void create_whenTableDisplayNumberAlreadyExists_throwsTableWithDisplayNumberAlreadyExistsException() {
-    TableDto tblDto1 = TableDto.builder().name("tbl1").displayNumber(1).seats(1).build();
-    Table table = Table.builder().name("tbl1").displayNumber(1).seats(1).build();
+  void create_whenTableNumberAlreadyExists_throwsTableWithNumberAlreadyExistsException() {
+    TableDto tblDto1 = TableDto.builder().name("tbl1").number(1).seats(1)
+        .tableStatus(TableStatus.RESERVED).build();
+    Table table = Table.builder().name("tbl1").number(1).seats(1).tableStatus(TableStatus.RESERVED)
+        .build();
 
-    when(tableRepository.findTableByDisplayNumber(tblDto1.displayNumber())).thenReturn(
+    when(tableRepository.findTableByNumber(tblDto1.getNumber())).thenReturn(
         Optional.ofNullable(table));
 
     String expectedMessage = String.format("Der Tisch mit der Nummer %d existiert bereits",
-        tblDto1.displayNumber());
+        tblDto1.getNumber());
 
-    TableWithDisplayNumberAlreadyExistsException thrown = assertThrows(
-        TableWithDisplayNumberAlreadyExistsException.class, () -> {
+    TableWithNumberAlreadyExistsException thrown = assertThrows(
+        TableWithNumberAlreadyExistsException.class, () -> {
           underTest.create(tblDto1);
         });
 
     assert table != null;
     verify(tableRepository, times(0)).save(table);
-    verify(tableRepository, times(1)).findTableByDisplayNumber(tblDto1.displayNumber());
+    verify(tableRepository, times(1)).findTableByNumber(tblDto1.getNumber());
     assertEquals(expectedMessage, thrown.getMessage());
 
   }
 
   @Test
-  void create_whenTableDisplayNumberDoesNotExists_returnTableDto() {
-    TableDto tblDto1 = TableDto.builder().name("tbl1").displayNumber(1).seats(1).build();
+  void create_whenTableNumberDoesNotExists_returnTableDto() {
+    TableDto tblDto1 = TableDto.builder().name("tbl1").number(1).seats(1)
+        .tableStatus(TableStatus.AVAILABLE).build();
+    Table table = Table.builder().name("tbl1").number(1).seats(1).tableStatus(TableStatus.AVAILABLE)
+        .build();
 
-    when(tableRepository.findTableByDisplayNumber(tblDto1.displayNumber())).thenReturn(
-        Optional.empty());
+    when(tableMapper.fromTableDtoToEntity(tblDto1)).thenReturn(table);
+
+    when(tableRepository.findTableByNumber(tblDto1.getNumber())).thenReturn(Optional.empty());
 
     TableDto actual = underTest.create(tblDto1);
 
     verify(tableRepository, times(1)).save(any(Table.class));
-    verify(tableRepository, times(1)).findTableByDisplayNumber(tblDto1.displayNumber());
+    verify(tableRepository, times(1)).findTableByNumber(tblDto1.getNumber());
     assertEquals(tblDto1, actual);
   }
 
   @Test
-  void findTableByDisplayNumber_whenTableDisplayNumberDoesNotExists_throwsTableNotFoundException() {
-    int displayNumber = 1;
+  void findTableByNumber_whenTableNumberDoesNotExists_throwsTableNotFoundException() {
+    int number = 1;
 
-    when(tableRepository.findTableByDisplayNumber(displayNumber)).thenReturn(Optional.empty());
+    when(tableRepository.findTableByNumber(number)).thenReturn(Optional.empty());
 
     String expectedMessage = String.format(
-        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", displayNumber);
+        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", number);
 
     TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
-      underTest.findTableByDisplayNumber(displayNumber);
+      underTest.findTableByNumber(number);
     });
 
-    verify(tableRepository, times(1)).findTableByDisplayNumber(displayNumber);
+    verify(tableRepository, times(1)).findTableByNumber(number);
     assertEquals(expectedMessage, thrown.getMessage());
   }
 
   @Test
-  void findTableByDisplayNumber_whenTableDisplayNumberDoesExists_returnsTableDto() {
-    TableDto expected = TableDto.builder().name("tbl1").displayNumber(1).seats(1).build();
-    Table table = Table.builder().name("tbl1").displayNumber(1).seats(1).build();
+  void findTableByNumber_whenTableNumberDoesExists_returnsTableDto() {
+    TableDto expected = TableDto.builder().name("tbl1").number(1).seats(1)
+        .tableStatus(TableStatus.AVAILABLE).build();
+    Table table = Table.builder().name("tbl1").number(1).seats(1).tableStatus(TableStatus.AVAILABLE)
+        .build();
 
-    when(tableRepository.findTableByDisplayNumber(table.getDisplayNumber())).thenReturn(
-        Optional.of(table));
+    when(tableMapper.fromTableToTableDto(table)).thenReturn(expected);
 
-    TableDto actual = underTest.findTableByDisplayNumber(table.getDisplayNumber());
+    when(tableRepository.findTableByNumber(table.getNumber())).thenReturn(Optional.of(table));
 
-    verify(tableRepository, times(1)).findTableByDisplayNumber(table.getDisplayNumber());
+    TableDto actual = underTest.findTableByNumber(table.getNumber());
+
+    verify(tableRepository, times(1)).findTableByNumber(table.getNumber());
     assertEquals(expected, actual);
   }
 
   @Test
-  void deleteTableByDisplayNumber_whenTableDisplayNumberDoesNotExists_throwsTableNotFoundException() {
-    int displayNumber = 1;
+  void deleteTableByNumber_whenTableNumberDoesNotExists_throwsTableNotFoundException() {
+    int number = 1;
 
-    when(tableRepository.findTableByDisplayNumber(displayNumber)).thenReturn(Optional.empty());
+    when(tableRepository.findTableByNumber(number)).thenReturn(Optional.empty());
 
     String expectedMessage = String.format(
-        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", displayNumber);
+        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", number);
 
     TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
-      underTest.deleteTableByDisplayNumber(displayNumber);
+      underTest.deleteTableByNumber(number);
     });
 
-    verify(tableRepository, times(1)).findTableByDisplayNumber(displayNumber);
+    verify(tableRepository, times(1)).findTableByNumber(number);
     assertEquals(expectedMessage, thrown.getMessage());
   }
 
   @Test
-  void deleteTableByDisplayNumber_whenTableDisplayNumberDoesExists_isSuccessful() {
-    Table table = Table.builder().name("tbl1").displayNumber(1).seats(1).build();
+  void deleteTableByNumber_whenTableNumberDoesExists_isSuccessful() {
+    Table table = Table.builder().name("tbl1").number(1).seats(1).tableStatus(TableStatus.AVAILABLE)
+        .build();
 
-    when(tableRepository.findTableByDisplayNumber(table.getDisplayNumber())).thenReturn(
-        Optional.of(table));
+    when(tableRepository.findTableByNumber(table.getNumber())).thenReturn(Optional.of(table));
 
-    underTest.deleteTableByDisplayNumber(table.getDisplayNumber());
+    underTest.deleteTableByNumber(table.getNumber());
 
-    verify(tableRepository, times(1)).findTableByDisplayNumber(table.getDisplayNumber());
+    verify(tableRepository, times(1)).findTableByNumber(table.getNumber());
     verify(tableRepository, times(1)).delete(table);
   }
 
   @Test
-  void updateTable_whenTableDisplayNumberDoesNotExists_throwsTableNotFoundException() {
-    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(1).build();
+  void updateTable_whenTableNumberDoesNotExists_throwsTableNotFoundException() {
+    TableDto tableDto = TableDto.builder().name("tbl1").number(1).seats(1)
+        .tableStatus(TableStatus.AVAILABLE).build();
 
     TableNotFoundException thrown = assertThrows(TableNotFoundException.class, () -> {
       underTest.update(tableDto);
     });
 
-    verify(tableRepository, times(1)).findTableByDisplayNumber(tableDto.displayNumber());
+    verify(tableRepository, times(1)).findTableByNumber(tableDto.getNumber());
     String expectedMessage = String.format(
-        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", tableDto.displayNumber());
+        "Der Tisch mit der Nummer %d konnte nicht gefunden werden", tableDto.getNumber());
 
     assertEquals(expectedMessage, thrown.getMessage());
   }
 
   @Test
-  void updateTable_whenTableDisplayNumberDoesExists_returnsUpdatedTableDto() {
-    TableDto expectedTableDto = TableDto.builder().name("tbl1_updated").displayNumber(1).seats(3)
+  void updateTable_whenTableNumberDoesExists_returnsUpdatedTableDto() {
+    TableDto expectedTableDto = TableDto.builder().name("tbl1_updated").number(1).seats(3)
+        .tableStatus(TableStatus.AVAILABLE).build();
+    Table table = Table.builder().name("tbl1").number(1).seats(1).tableStatus(TableStatus.AVAILABLE)
         .build();
-    Table table = Table.builder().name("tbl1").displayNumber(1).seats(1).build();
 
-    when(tableRepository.findTableByDisplayNumber(table.getDisplayNumber())).thenReturn(
-        Optional.of(table));
+    when(tableMapper.fromTableToTableDto(table)).thenReturn(expectedTableDto);
+
+    when(tableRepository.findTableByNumber(table.getNumber())).thenReturn(Optional.of(table));
 
     TableDto actual = underTest.update(expectedTableDto);
 
-    verify(tableRepository, times(1)).findTableByDisplayNumber(expectedTableDto.displayNumber());
+    verify(tableRepository, times(1)).findTableByNumber(expectedTableDto.getNumber());
     assertEquals(expectedTableDto, actual);
 
   }

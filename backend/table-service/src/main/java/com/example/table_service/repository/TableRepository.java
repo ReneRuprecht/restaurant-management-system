@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TableRepository extends JpaRepository<Table, Long> {
 
-  Optional<Table> findTableByDisplayNumber(int displayNumber);
+  Optional<Table> findTableByNumber(int number);
 
 }

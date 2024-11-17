@@ -1,6 +1,5 @@
 package com.example.table_service.controller;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,7 +9,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.table_service.dto.TableDto;
@@ -20,8 +18,10 @@ import com.example.table_service.dto.response.TableCreatedResponse;
 import com.example.table_service.dto.response.TableFindAllResponse;
 import com.example.table_service.dto.response.TableUpdatedResponse;
 import com.example.table_service.exception.TableNotFoundException;
-import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
+import com.example.table_service.exception.TableWithNumberAlreadyExistsException;
+import com.example.table_service.model.TableStatus;
 import com.example.table_service.service.TableServiceImpl;
+import com.example.table_service.util.TableMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +43,9 @@ class TableControllerTest {
 
   @MockBean
   private TableServiceImpl tableService;
+
+  @MockBean
+  private TableMapper tableMapper;
 
   private ObjectMapper objectMapper;
 
@@ -68,8 +71,10 @@ class TableControllerTest {
   void findAll_whenTablesDoExist_returnTablesAndStatus200() throws Exception {
 
     List<TableDto> tables = List.of(
-        TableDto.builder().name("tbl1").displayNumber(1).seats(2).build(),
-        TableDto.builder().name("tbl2").displayNumber(2).seats(3).build());
+        TableDto.builder().name("tbl1").number(1).seats(2).tableStatus(TableStatus.AVAILABLE)
+            .build(),
+        TableDto.builder().name("tbl2").number(2).seats(3).tableStatus(TableStatus.RESERVED)
+            .build());
 
     TableFindAllResponse expected = new TableFindAllResponse(tables);
 
@@ -83,18 +88,20 @@ class TableControllerTest {
   }
 
   @Test
-  void create_whenTableWithDisplayNumberAlreadyExists_throwsTableWithDisplayNumberAlreadyExistsExceptionAndStatus419()
+  void create_whenTableWithNumberAlreadyExists_throwsTableWithNumberAlreadyExistsExceptionAndStatus419()
       throws Exception {
 
-    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
-    TableCreateRequest tableCreateRequest = TableCreateRequest.builder().name("tbl1")
-        .displayNumber(1).seats(3).build();
+    TableDto tableDto = TableDto.builder().name("tbl1").number(1).seats(3)
+        .tableStatus(TableStatus.AVAILABLE).build();
+    TableCreateRequest tableCreateRequest = new TableCreateRequest("tbl1", 1, 3);
 
     String expectedMessage = String.format("Der Tisch mit der Nummer %d existiert bereits",
-        tableDto.displayNumber());
+        tableDto.getNumber());
+
+    when(tableMapper.fromTableCreateRequestToTableDto(tableCreateRequest)).thenReturn(tableDto);
 
     when(tableService.create(tableDto)).thenThrow(
-        new TableWithDisplayNumberAlreadyExistsException(expectedMessage));
+        new TableWithNumberAlreadyExistsException(expectedMessage));
 
     mockMvc.perform(post("/api/v1/table").contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(tableCreateRequest)))
@@ -102,15 +109,16 @@ class TableControllerTest {
   }
 
   @Test
-  void create_whenTableWithDisplayNumberDoesNotAlreadyExists_returnTableCreateResponseAndStatus201()
+  void create_whenTableWithNumberDoesNotAlreadyExists_returnTableCreateResponseAndStatus201()
       throws Exception {
 
-    TableCreateRequest tableCreateRequest = TableCreateRequest.builder().name("tbl1")
-        .displayNumber(1).seats(3).build();
+    TableCreateRequest tableCreateRequest = new TableCreateRequest("tbl1", 1, 3);
 
-    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+    TableDto tableDto = TableDto.builder().name("tbl1").number(1).seats(3).build();
 
-    TableCreatedResponse expected = TableCreatedResponse.builder().tableDto(tableDto).build();
+    TableCreatedResponse expected = new TableCreatedResponse(tableDto);
+
+    when(tableMapper.fromTableCreateRequestToTableDto(tableCreateRequest)).thenReturn(tableDto);
 
     when(tableService.create(tableDto)).thenReturn(tableDto);
 
@@ -123,72 +131,79 @@ class TableControllerTest {
   }
 
   @Test
-  void findTableByDisplayNumber_whenTableWithDisplayNumberDoesNotExists_throwsTableNotFoundExceptionExceptionAndStatus404()
+  void findTableByNumber_whenTableWithNumberDoesNotExists_throwsTableNotFoundExceptionExceptionAndStatus404()
       throws Exception {
 
-    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+    TableDto tableDto = TableDto.builder().name("tbl1").number(1).seats(3)
+        .tableStatus(TableStatus.AVAILABLE).build();
 
     String expectedMessage = String.format("Der Tisch mit der Nummer %d wurde nicht gefunden",
-        tableDto.displayNumber());
+        tableDto.getNumber());
 
-    when(tableService.findTableByDisplayNumber(tableDto.displayNumber())).thenThrow(
+    when(tableService.findTableByNumber(tableDto.getNumber())).thenThrow(
         new TableNotFoundException(expectedMessage));
 
-    mockMvc.perform(get(String.format("/api/v1/table/%d", tableDto.displayNumber())))
+    mockMvc.perform(get(String.format("/api/v1/table/%d", tableDto.getNumber())))
         .andExpect(status().isNotFound()).andExpect(content().string(expectedMessage));
   }
 
   @Test
-  void findTableByDisplayNumber_whenTableWithDisplayNumberExists_returnTableDtoAndStatus200()
-      throws Exception {
+  void findTableByNumber_whenTableWithNumberExists_returnTableDtoAndStatus200() throws Exception {
 
-    TableDto expected = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+    TableDto expected = TableDto.builder().name("tbl1").number(1).seats(3)
+        .tableStatus(TableStatus.AVAILABLE).build();
 
-    when(tableService.findTableByDisplayNumber(expected.displayNumber())).thenReturn(expected);
+    when(tableService.findTableByNumber(expected.getNumber())).thenReturn(expected);
 
-    mockMvc.perform(get(String.format("/api/v1/table/%d", expected.displayNumber())))
+    mockMvc.perform(get(String.format("/api/v1/table/%d", expected.getNumber())))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(expected)));
 
-    verify(tableService, times(1)).findTableByDisplayNumber(expected.displayNumber());
+    verify(tableService, times(1)).findTableByNumber(expected.getNumber());
   }
 
   @Test
-  void deleteTableByDisplayNumber_whenTableWithDisplayNumberDoesNotExists_throwsTableNotFoundExceptionExceptionAndStatus404()
+  void deleteTableByNumber_whenTableWithNumberDoesNotExists_throwsTableNotFoundExceptionExceptionAndStatus404()
       throws Exception {
 
-    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+    TableDto tableDto = TableDto.builder().name("tbl1").number(1).seats(3)
+        .tableStatus(TableStatus.AVAILABLE).build();
 
     String expectedMessage = String.format("Der Tisch mit der Nummer %d wurde nicht gefunden",
-        tableDto.displayNumber());
+        tableDto.getNumber());
 
     doThrow(new TableNotFoundException(expectedMessage)).when(tableService)
-        .deleteTableByDisplayNumber(tableDto.displayNumber());
+        .deleteTableByNumber(tableDto.getNumber());
 
-    mockMvc.perform(delete(String.format("/api/v1/table/%d", tableDto.displayNumber())))
+    mockMvc.perform(delete(String.format("/api/v1/table/%d", tableDto.getNumber())))
         .andExpect(status().isNotFound()).andExpect(content().string(expectedMessage));
   }
 
   @Test
-  void deleteTableByDisplayNumber_whenTableWithDisplayNumberDoesExists_returnsStatus200()
-      throws Exception {
+  void deleteTableByNumber_whenTableWithNumberDoesExists_returnsStatus200() throws Exception {
 
-    TableDto tableDto = TableDto.builder().name("tbl1").displayNumber(1).seats(3).build();
+    TableDto tableDto = TableDto.builder().name("tbl1").number(1).seats(3)
+        .tableStatus(TableStatus.AVAILABLE).build();
 
-    mockMvc.perform(delete(String.format("/api/v1/table/%d", tableDto.displayNumber())))
+    mockMvc.perform(delete(String.format("/api/v1/table/%d", tableDto.getNumber())))
         .andExpect(status().isOk());
 
-    verify(tableService, times(1)).deleteTableByDisplayNumber(tableDto.displayNumber());
+    verify(tableService, times(1)).deleteTableByNumber(tableDto.getNumber());
   }
 
   @Test
-  void updateTable_whenTableWithDisplayNumberDoesExists_returnsStatus200() throws Exception {
+  void updateTable_whenTableWithNumberDoesExists_returnsStatus200() throws Exception {
 
-    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("tbl1_updated", 1, 4);
+    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("tbl1_updated", 1, 4,
+        TableStatus.AVAILABLE);
 
-    TableDto tableDtoUpdated = TableDto.builder().name("tbl1_updated").displayNumber(1).seats(4)
-        .build();
+    TableDto tableDtoUpdated = TableDto.builder().name("tbl1_updated").number(1).seats(4)
+        .tableStatus(TableStatus.RESERVED).build();
+
     TableUpdatedResponse tableUpdatedResponse = new TableUpdatedResponse(tableDtoUpdated);
+
+    when(tableMapper.fromTableUpdateRequestToTableDto(tableUpdateRequest)).thenReturn(
+        tableDtoUpdated);
 
     when(tableService.update(tableDtoUpdated)).thenReturn(tableDtoUpdated);
 
@@ -202,7 +217,8 @@ class TableControllerTest {
   @Test
   void updateTable_whenTableSeatsAreInvalid_returnsStatus400() throws Exception {
 
-    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("tbl1_updated", 1, 0);
+    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("tbl1_updated", 1, 0,
+        TableStatus.AVAILABLE);
 
     String invalidSeats = "{\"seats\":\"must be greater than or equal to 1\"}";
 
@@ -215,7 +231,7 @@ class TableControllerTest {
   @Test
   void updateTable_whenTableNameIsEmpty_returnsStatus400() throws Exception {
 
-    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("", 1, 1);
+    TableUpdateRequest tableUpdateRequest = new TableUpdateRequest("", 1, 1, TableStatus.AVAILABLE);
 
     String invalidSeats = "{\"name\":\"must not be empty\"}";
 

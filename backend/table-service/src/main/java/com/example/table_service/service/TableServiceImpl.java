@@ -3,8 +3,9 @@ package com.example.table_service.service;
 import com.example.table_service.dto.TableDto;
 import com.example.table_service.entity.Table;
 import com.example.table_service.exception.TableNotFoundException;
-import com.example.table_service.exception.TableWithDisplayNumberAlreadyExistsException;
+import com.example.table_service.exception.TableWithNumberAlreadyExistsException;
 import com.example.table_service.repository.TableRepository;
+import com.example.table_service.util.TableMapper;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,6 +20,8 @@ public class TableServiceImpl implements TableService {
 
   private final TableRepository tableRepository;
 
+  private final TableMapper tableMapper;
+
   @Override
   public List<TableDto> findAllTables() throws TableNotFoundException {
     List<Table> tables = tableRepository.findAll();
@@ -27,42 +30,41 @@ public class TableServiceImpl implements TableService {
       throw new TableNotFoundException("Es wurden keine Tische gefunden");
     }
 
-    return tables.stream().map(TableDto::fromEntity).collect(Collectors.toList());
+    return tables.stream().map(tableMapper::fromTableToTableDto).collect(Collectors.toList());
 
   }
 
   @Override
   @Transactional
-  public TableDto create(TableDto tableToCreate)
-      throws TableWithDisplayNumberAlreadyExistsException {
-    if (tableRepository.findTableByDisplayNumber(tableToCreate.displayNumber()).isPresent()) {
+  public TableDto create(TableDto tableToCreate) throws TableWithNumberAlreadyExistsException {
+    if (tableRepository.findTableByNumber(tableToCreate.getNumber()).isPresent()) {
 
-      throw new TableWithDisplayNumberAlreadyExistsException(
+      throw new TableWithNumberAlreadyExistsException(
           String.format("Der Tisch mit der Nummer %d existiert bereits",
-              tableToCreate.displayNumber()));
+              tableToCreate.getNumber()));
     }
 
-    tableRepository.save(TableDto.toEntity(tableToCreate));
+    Table table = tableMapper.fromTableDtoToEntity(tableToCreate);
+
+    tableRepository.save(table);
 
     return tableToCreate;
   }
 
   @Override
-  public TableDto findTableByDisplayNumber(int displayNumber) throws TableNotFoundException {
-    Table table = tableRepository.findTableByDisplayNumber(displayNumber).orElseThrow(
+  public TableDto findTableByNumber(int number) throws TableNotFoundException {
+    Table table = tableRepository.findTableByNumber(number).orElseThrow(
         () -> new TableNotFoundException(
-            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden",
-                displayNumber)));
-    return TableDto.fromEntity(table);
+            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden", number)));
+    return tableMapper.fromTableToTableDto(table);
   }
 
   @Override
   @Transactional
-  public void deleteTableByDisplayNumber(int displayNumber) throws TableNotFoundException {
-    Table table = tableRepository.findTableByDisplayNumber(displayNumber).orElseThrow(
+  public void deleteTableByNumber(int number) throws TableNotFoundException {
+    Table table = tableRepository.findTableByNumber(number).orElseThrow(
         () -> new TableNotFoundException(
-            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden",
-                displayNumber)));
+            String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden", number)));
 
     tableRepository.delete(table);
 
@@ -71,17 +73,16 @@ public class TableServiceImpl implements TableService {
   @Override
   @Transactional
   public TableDto update(TableDto tableToUpdate) {
-    Table table = tableRepository.findTableByDisplayNumber(tableToUpdate.displayNumber())
-        .orElseThrow(() -> new TableNotFoundException(
+    Table table = tableRepository.findTableByNumber(tableToUpdate.getNumber()).orElseThrow(
+        () -> new TableNotFoundException(
             String.format("Der Tisch mit der Nummer %d konnte nicht gefunden werden",
-                tableToUpdate.displayNumber())));
+                tableToUpdate.getNumber())));
 
-    table.setName(tableToUpdate.name());
-    table.setSeats(tableToUpdate.seats());
+    table.setName(tableToUpdate.getName());
+    table.setSeats(tableToUpdate.getSeats());
+    table.setTableStatus(tableToUpdate.getTableStatus());
 
-    tableRepository.save(table);
-
-    return TableDto.fromEntity(table);
+    return tableMapper.fromTableToTableDto(table);
   }
 
 }

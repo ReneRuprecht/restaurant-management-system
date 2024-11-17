@@ -1,15 +1,20 @@
 package com.example.table_service.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-@Builder
-public record TableCreateRequest(
+@Data
+@AllArgsConstructor
+public class TableCreateRequest {
 
-    @JsonProperty(value = "name") String name,
+  @JsonProperty(value = "name")
+  private String name;
 
-    @JsonProperty(value = "display_number") int displayNumber,
+  @JsonProperty(value = "number")
+  private int number;
 
-    @JsonProperty(value = "seats") int seats) {
+  @JsonProperty(value = "seats")
+  private int seats;
 
 }
